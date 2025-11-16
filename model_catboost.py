@@ -20,12 +20,12 @@ warnings.filterwarnings('ignore')
 
 def load_datasets():
     """Load all required data files"""
-    df_financial_ratios = pd.read_json('financial_ratios.jsonl', lines=True)
-    df_geographic_data = pd.read_xml('geographic_data.xml')
-    df_credit_history = pd.read_parquet('credit_history.parquet')
-    df_demographics = pd.read_csv('demographics.csv')
-    df_loan_details = pd.read_excel('loan_details.xlsx')
-    df_application_metadata = pd.read_csv('application_metadata.csv')
+    df_financial_ratios = pd.read_json('data/financial_ratios.jsonl', lines=True)
+    df_geographic_data = pd.read_xml('data/geographic_data.xml')
+    df_credit_history = pd.read_parquet('data/credit_history.parquet')
+    df_demographics = pd.read_csv('data/demographics.csv')
+    df_loan_details = pd.read_excel('data/loan_details.xlsx')
+    df_application_metadata = pd.read_csv('data/application_metadata.csv')
     
     return (df_financial_ratios, df_geographic_data, df_credit_history,
             df_demographics, df_loan_details, df_application_metadata)
@@ -143,33 +143,40 @@ def remove_highly_correlated_features(df, threshold=0.90):
     """Remove features with correlation > threshold"""
     numeric_df = df.select_dtypes(include=[np.number])
     corr_matrix = numeric_df.corr().abs()
-    
+
     columns_to_drop = set()
     for i in range(len(corr_matrix.columns)):
         for j in range(i+1, len(corr_matrix.columns)):
             if corr_matrix.iloc[i, j] > threshold:
                 col1, col2 = corr_matrix.columns[i], corr_matrix.columns[j]
                 if col1 != 'default' and col2 != 'default':
-                    corr_target = numeric_df.corr()['default'].abs()
-                    if corr_target[col1] < corr_target[col2]:
-                        columns_to_drop.add(col1)
+                    # Only use target correlation if 'default' column exists
+                    if 'default' in numeric_df.columns:
+                        corr_target = numeric_df.corr()['default'].abs()
+                        if corr_target[col1] < corr_target[col2]:
+                            columns_to_drop.add(col1)
+                        else:
+                            columns_to_drop.add(col2)
                     else:
-                        columns_to_drop.add(col2)
-    
+                        # If no target, just drop the first column
+                        columns_to_drop.add(col1)
+
     if columns_to_drop:
         df = df.drop(columns=list(columns_to_drop), axis=1)
-    
+
     return df
 
 
 def remove_low_correlation_features(df, threshold=0.05):
     """Remove features with low correlation to target"""
-    correlation = df.select_dtypes(include=[np.number]).corr()['default'].abs()
-    low_corr_features = [col for col in correlation.index if correlation[col] < threshold and col != 'default']
-    
-    if low_corr_features:
-        df = df.drop(columns=low_corr_features, axis=1, errors='ignore')
-    
+    # Only remove low correlation features if 'default' column exists
+    if 'default' in df.columns:
+        correlation = df.select_dtypes(include=[np.number]).corr()['default'].abs()
+        low_corr_features = [col for col in correlation.index if correlation[col] < threshold and col != 'default']
+
+        if low_corr_features:
+            df = df.drop(columns=low_corr_features, axis=1, errors='ignore')
+
     return df
 
 
@@ -327,6 +334,62 @@ def display_feature_importance(model, X):
 
 
 # ============================================================================
+# TEST DATA PROCESSING FUNCTIONS
+# ============================================================================
+
+def load_test_datasets():
+    """Load all test data files"""
+    df_financial_ratios = pd.read_json('data/tests/financial_ratios.jsonl', lines=True)
+    df_geographic_data = pd.read_xml('data/tests/geographic_data.xml')
+    df_credit_history = pd.read_parquet('data/tests/credit_history.parquet')
+    df_demographics = pd.read_csv('data/tests/demographics.csv')
+    df_loan_details = pd.read_excel('data/tests/loan_details.xlsx')
+    df_application_metadata = pd.read_csv('data/tests/application_metadata.csv')
+
+    return (df_financial_ratios, df_geographic_data, df_credit_history,
+            df_demographics, df_loan_details, df_application_metadata)
+
+
+def preprocess_data(df_merged):
+    """Apply all preprocessing steps to data"""
+    df_merged = clean_currency_columns(df_merged)
+    df_merged = remove_outliers(df_merged)
+    df_merged = drop_unnecessary_columns(df_merged)
+    df_merged = fill_missing_values(df_merged)
+    df_merged = standardize_categorical_columns(df_merged)
+    df_merged = remove_highly_correlated_features(df_merged)
+    df_merged = remove_low_correlation_features(df_merged)
+    df_merged = create_interaction_features(df_merged)
+    df_merged = drop_low_value_categorical_features(df_merged)
+    df_merged = handle_infinite_values(df_merged)
+    return df_merged
+
+
+def make_predictions_on_test(final_model, X_test, customer_ids, threshold=0.5):
+    """Make predictions on test data and format results"""
+    # Make predictions
+    y_pred_proba = final_model.predict_proba(X_test)[:, 1]
+    y_pred = (y_pred_proba >= threshold).astype(int)
+
+    # Create results dataframe
+    results_df = pd.DataFrame({
+        'customer_id': customer_ids,
+        'predicted_probability': y_pred_proba,
+        'verdict': y_pred
+    })
+
+    return results_df
+
+
+def save_results(results_df, output_path='results.csv'):
+    """Save prediction results to CSV"""
+    results_df.to_csv(output_path, index=False)
+    print(f"\nPredictions saved to: {output_path}")
+    print(f"Total predictions: {len(results_df):,}")
+    print(f"Predicted defaults: {results_df['verdict'].sum():,} ({results_df['verdict'].sum()/len(results_df)*100:.1f}%)")
+
+
+# ============================================================================
 # MAIN EXECUTION
 # ============================================================================
 
@@ -335,63 +398,83 @@ def main():
     print("="*60)
     print(" CREDIT DEFAULT PREDICTION - CATBOOST")
     print("="*60)
-    
+
     start_time = time.time()
-    
-    # Load and prepare data
+
+    # Load and prepare training data
+    print("\n[1/5] Loading training data...")
     dfs = load_datasets()
     dfs = standardize_column_names(dfs)
     df_merged = merge_datasets(dfs)
-    
-    # Data cleaning
-    df_merged = clean_currency_columns(df_merged)
-    df_merged = remove_outliers(df_merged)
-    df_merged = drop_unnecessary_columns(df_merged)
-    df_merged = fill_missing_values(df_merged)
-    df_merged = standardize_categorical_columns(df_merged)
-    
-    # Feature engineering
-    df_merged = remove_highly_correlated_features(df_merged)
-    df_merged = remove_low_correlation_features(df_merged)
-    df_merged = create_interaction_features(df_merged)
-    df_merged = drop_low_value_categorical_features(df_merged)
-    df_merged = handle_infinite_values(df_merged)
-    
+
+    # Preprocess training data
+    print("[2/5] Preprocessing training data...")
+    df_merged = preprocess_data(df_merged)
+
     # Prepare features
     X = df_merged.drop('default', axis=1)
     y = df_merged['default']
-    
+
     categorical_features = X.select_dtypes(include=['object']).columns.tolist()
     categorical_indices = [X.columns.get_loc(col) for col in categorical_features]
-    
+
     print(f"\nDataset prepared:")
     print(f"  Total features: {X.shape[1]}")
     print(f"  Categorical: {len(categorical_features)}")
     print(f"  Target: 0={y.value_counts()[0]:,} ({y.value_counts()[0]/len(y)*100:.1f}%) | 1={y.value_counts()[1]:,} ({y.value_counts()[1]/len(y)*100:.1f}%)")
-    
+
     # Model training
+    print("\n[3/5] Training model with cross-validation...")
     model = create_catboost_model(categorical_indices)
-    
+
     cv_start = time.time()
     auc_scores, accuracy_scores, all_y_true, all_y_pred, all_y_pred_proba = perform_cross_validation(
         model, X, y, categorical_indices
     )
     cv_time = time.time() - cv_start
-    
+
     # Display results
     display_results(auc_scores, accuracy_scores, all_y_true, all_y_pred, all_y_pred_proba)
-    
-    # Train final model
+
+    # Train final model on full training data
+    print("\n[4/5] Training final model on complete dataset...")
     final_model = train_final_model(model, X, y, categorical_indices)
-    
+
     # Feature importance
     display_feature_importance(final_model, X)
-    
+
+    # Load and process test data
+    print("\n[5/5] Making predictions on test data...")
+    test_dfs = load_test_datasets()
+    test_dfs = standardize_column_names(test_dfs)
+    df_test_merged = merge_datasets(test_dfs)
+
+    # Store customer IDs before preprocessing
+    test_customer_ids = df_test_merged['customer_id'].copy()
+
+    # Preprocess test data
+    df_test_merged = preprocess_data(df_test_merged)
+
+    # Ensure test data has same features as training data
+    # Add missing columns with 0
+    for col in X.columns:
+        if col not in df_test_merged.columns:
+            df_test_merged[col] = 0
+
+    # Remove extra columns not in training
+    df_test_merged = df_test_merged[X.columns]
+
+    # Make predictions
+    results_df = make_predictions_on_test(final_model, df_test_merged, test_customer_ids)
+
+    # Save results
+    save_results(results_df, 'results.csv')
+
     print(f"\nPerformance:")
     print(f"  Training time: {cv_time:.2f}s")
     print(f"  Total runtime: {time.time() - start_time:.2f}s")
     print(f"{'='*60}")
-    
+
     print("\nCATBOOST MODEL READY!")
 
 
