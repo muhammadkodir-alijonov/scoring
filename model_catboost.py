@@ -374,8 +374,8 @@ def make_predictions_on_test(final_model, X_test, customer_ids, threshold=0.5):
     # Create results dataframe
     results_df = pd.DataFrame({
         'customer_id': customer_ids,
-        'predicted_probability': y_pred_proba,
-        'verdict': y_pred
+        'prob': y_pred_proba,
+        'default': y_pred
     })
 
     return results_df

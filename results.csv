@@ -1,4 +1,4 @@
-customer_id,predicted_probability,verdict
+customer_id,prob,default
 100000,0.03623540765801078,0
 100001,0.046592905169345986,0
 100002,0.2285075037878348,0
