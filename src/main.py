@@ -98,7 +98,7 @@ def main():
     )
     train_parser.add_argument(
         '--model-type',
-        choices=['random_forest', 'gradient_boosting', 'logistic', 'ensemble', 'optimized'],
+        choices=['random_forest', 'gradient_boosting', 'logistic', 'ensemble', 'optimized', 'xgboost', 'xgboost_smote'],
         default='random_forest',
         help='Type of model to train (default: random_forest)'
     )

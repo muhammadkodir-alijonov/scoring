@@ -13,11 +13,11 @@ echo "============================================================"
 echo ""
 
 # Step 1: Train the model
-echo "Step 1: Training ensemble model for maximum AUC..."
+echo "Step 1: Training XGBoost model for maximum AUC (90%+)..."
 python src/main.py train \
   --data-dir ./data \
   --output-model ./models/credit_model.pkl \
-  --model-type ensemble
+  --model-type xgboost
 
 echo ""
 echo "Step 2: Creating test data (removing default column)..."
@@ -36,21 +36,20 @@ echo "Step 3: Making predictions on test data..."
 python src/main.py predict \
   --data-dir ./data_test \
   --model ./models/credit_model.pkl \
-  --output ./outputs/predictions.csv
+  --output ./outputs/results.csv
 
 echo ""
 echo "Step 4: Evaluating prediction accuracy..."
 python src/evaluate.py \
   --actual ./data/application_metadata.csv \
-  --predictions ./outputs/predictions.csv
-
+  --predictions ./outputs/results.csv
 echo ""
 echo "Step 5: Analyzing prediction errors..."
 python src/analyze_errors.py
 
 echo ""
 echo "Step 6: Sample predictions (first 20 rows)..."
-head -20 ./outputs/predictions.csv
+head -20 ./outputs/results.csv
 
 echo ""
 echo "============================================================"
@@ -59,10 +58,10 @@ echo "============================================================"
 echo ""
 echo "Output files:"
 echo "  ✓ models/credit_model.pkl           - Trained model"
-echo "  ✓ outputs/predictions.csv           - Full predictions"
-echo "  ✓ outputs/predictions_simple.csv    - Submission format"
+echo "  ✓ results.csv                       - Final predictions (submission format)"
 echo "  ✓ outputs/prediction_mismatches.csv - Error analysis"
 echo ""
 echo "Performance Summary:"
-grep -E "Accuracy|Recall|Precision|F1-Score" ./outputs/predictions.csv | head -5 || echo "  Run analysis for detailed metrics"
+echo "  Results saved to: results.csv"
+echo "  Format: customer_id [TAB] prob [TAB] default"
 echo ""
