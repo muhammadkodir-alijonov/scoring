@@ -1,0 +1,2 @@
+[console_scripts]
+credit-score = main:main
