@@ -28,8 +28,12 @@ def evaluate_predictions(actual_data_path: str, predictions_path: str):
             
         actuals = actual_df[['customer_id', 'default']]
 
-        # Load predictions data
-        predictions_df = pd.read_csv(predictions_path)
+        # Load predictions data (try both comma and tab separators)
+        try:
+            predictions_df = pd.read_csv(predictions_path, sep='\t')
+        except:
+            predictions_df = pd.read_csv(predictions_path)
+            
         if 'default' not in predictions_df.columns:
             print(f"Error: 'default' column not found in predictions file: {predictions_path}")
             sys.exit(1)

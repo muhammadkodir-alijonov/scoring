@@ -13,11 +13,11 @@ echo "============================================================"
 echo ""
 
 # Step 1: Train the model
-echo "Step 1: Training gradient boosting model..."
+echo "Step 1: Training ensemble model for maximum AUC..."
 python src/main.py train \
   --data-dir ./data \
   --output-model ./models/credit_model.pkl \
-  --model-type gradient_boosting
+  --model-type ensemble
 
 echo ""
 echo "Step 2: Creating test data (removing default column)..."

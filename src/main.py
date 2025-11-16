@@ -55,7 +55,19 @@ def predict_defaults(data_dir: str, model_path: str, output_file: str):
     # 1. AUC (Area Under Curve)
     # 2. Linguistic ranking (3 column correlation)
     # 3. Spearman correlation
-    results[['customer_id', 'prob', 'default']].to_csv(output_file, index=False)
+    
+    # Ensure proper data types
+    results['customer_id'] = results['customer_id'].astype(int)
+    results['prob'] = results['prob'].astype(float)
+    results['default'] = results['default'].astype(int)
+    
+    # Save with tab separator to match results.csv format
+    results[['customer_id', 'prob', 'default']].to_csv(
+        output_file, 
+        index=False, 
+        sep='\t',
+        float_format='%.5f'
+    )
     print(f"\nPredictions saved to {output_file}")
     print(f"Format: customer_id (int), prob (float), default (int)")
     print(f"Total predictions: {len(results)}")

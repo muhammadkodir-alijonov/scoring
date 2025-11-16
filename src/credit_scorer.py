@@ -45,17 +45,17 @@ class CreditScorer:
             )
         elif model_type == 'gradient_boosting':
             self.model = GradientBoostingClassifier(
-                n_estimators=400,           # Ko'proq tree'lar
-                max_depth=10,               # Chuqurroq tree'lar
-                learning_rate=0.03,         # Pastroq learning rate (yaxshiroq konvergensiya)
-                subsample=0.85,             # Ko'proq data har bir tree uchun
-                min_samples_split=10,       # Kamroq cheklov
-                min_samples_leaf=5,         # Kamroq cheklov
+                n_estimators=600,           # Ko'proq tree'lar
+                max_depth=8,                # Overfitting oldini olish uchun
+                learning_rate=0.01,         # Juda pastroq - yaxshiroq konvergensiya
+                subsample=0.8,              # Ko'proq generalizatsiya
+                min_samples_split=20,       # Overfitting oldini olish
+                min_samples_leaf=10,        # Overfitting oldini olish
                 max_features='sqrt',
                 random_state=42,
-                validation_fraction=0.1,    # Early stopping uchun
-                n_iter_no_change=20,        # Early stopping
-                tol=0.0001
+                validation_fraction=0.15,   # Ko'proq validation data
+                n_iter_no_change=50,        # Ko'proq patience
+                tol=0.00001
             )
         elif model_type == 'logistic':
             self.model = LogisticRegression(
@@ -66,32 +66,33 @@ class CreditScorer:
         elif model_type == 'ensemble':
             # Ensemble of multiple models for better performance
             gb_model = GradientBoostingClassifier(
-                n_estimators=400,
-                max_depth=10,
-                learning_rate=0.03,
-                subsample=0.85,
-                min_samples_split=10,
-                min_samples_leaf=5,
+                n_estimators=600,
+                max_depth=8,
+                learning_rate=0.01,
+                subsample=0.8,
+                min_samples_split=20,
+                min_samples_leaf=10,
                 max_features='sqrt',
                 random_state=42,
-                validation_fraction=0.1,
-                n_iter_no_change=20,
-                tol=0.0001
+                validation_fraction=0.15,
+                n_iter_no_change=50,
+                tol=0.00001
             )
             
             rf_model = RandomForestClassifier(
-                n_estimators=300,
-                max_depth=15,
-                min_samples_split=5,
-                min_samples_leaf=2,
+                n_estimators=400,
+                max_depth=12,
+                min_samples_split=10,
+                min_samples_leaf=5,
                 random_state=42,
                 class_weight='balanced',
-                max_features='sqrt'
+                max_features='sqrt',
+                n_jobs=-1
             )
             
             ada_model = AdaBoostClassifier(
-                n_estimators=200,
-                learning_rate=0.05,
+                n_estimators=300,
+                learning_rate=0.03,
                 random_state=42
             )
             
@@ -103,22 +104,24 @@ class CreditScorer:
                     ('ada', ada_model)
                 ],
                 voting='soft',
-                weights=[2, 1, 1]  # GB gets more weight (best performer)
+                weights=[3, 2, 1],  # GB gets most weight (best performer)
+                n_jobs=-1
             )
         elif model_type == 'optimized':
             # Highly optimized gradient boosting with best parameters
             self.model = GradientBoostingClassifier(
-                n_estimators=500,           # Maksimal tree'lar
-                max_depth=12,               # Juda chuqur
-                learning_rate=0.02,         # Juda past (yaxshi konvergensiya)
-                subsample=0.9,              # Ko'proq data
-                min_samples_split=5,        # Minimal cheklov
-                min_samples_leaf=2,         # Minimal cheklov
+                n_estimators=800,           # Juda ko'p tree'lar
+                max_depth=7,                # Optimal chuqurlik (overfitting oldini oladi)
+                learning_rate=0.005,        # Juda past - eng yaxshi konvergensiya
+                subsample=0.75,             # Yaxshi generalizatsiya
+                min_samples_split=25,       # Overfitting oldini olish
+                min_samples_leaf=12,        # Overfitting oldini olish
                 max_features='sqrt',
                 random_state=42,
-                validation_fraction=0.1,
-                n_iter_no_change=30,
-                tol=0.00001                 # Juda aniq
+                validation_fraction=0.2,    # Ko'proq validation
+                n_iter_no_change=100,       # Katta patience
+                tol=0.000001,               # Juda aniq
+                verbose=1                   # Progress ko'rsatish
             )
         else:
             raise ValueError(f"Unknown model type: {model_type}")
