@@ -1,287 +1,261 @@
-# 📊   Scoring System
+# Credit Default Prediction Model
 
-[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Accuracy](https://img.shields.io/badge/Accuracy-89.9%25-brightgreen.svg)]()
-[![Recall](https://img.shields.io/badge/Recall-80.5%25-brightgreen.svg)]()
+A machine learning solution for predicting credit default risk using CatBoost algorithm, designed to handle highly imbalanced datasets with professional-grade performance.
 
-> **Production-grade machine learning system for   default prediction**  
-> 80.5% recall • $24.6M annual savings • 77% false negative reduction
+## 🎯 Project Overview
 
----
+This project implements a credit default prediction system that processes multi-source financial data to predict the likelihood of loan default. The model achieves an **AUC score of 0.80** with exceptional **69% recall** on the minority class, making it suitable for real-world credit risk assessment.
 
-## 🎯 Key Highlights
+### Key Features
 
-| Metric | Value | Impact |
-|--------|-------|--------|
-| **Recall** | 80.5% | Catches 80.5% of risky borrowers |
-| **Accuracy** | 89.9% | Overall prediction accuracy |
-| **Annual Savings** | $24.6M | 18.3% risk reduction vs baseline |
-| **FN Reduction** | 77% | From 3,967 → 895 false negatives |
-| **Model Type** | Gradient Boosting | 400 estimators, optimized hyperparameters |
-| **Features** | 94 | 81 base + 13 engineered features |
+- **Advanced Data Processing**: Handles 6 heterogeneous data sources (JSONL, XML, Parquet, CSV, Excel)
+- **Imbalanced Data Handling**: Utilizes CatBoost's `SqrtBalanced` class weighting for optimal minority class detection
+- **Feature Engineering**: Automated creation of 5 interaction features based on domain knowledge
+- **Robust Preprocessing**: Currency parsing, outlier clipping (3×IQR), correlation-based feature selection
+- **Production-Ready**: Clean code structure with minimal dependencies
 
----
+## 📊 Model Performance
 
-## 📁 Project Structure
+| Metric | Score | Description |
+|--------|-------|-------------|
+| **AUC-ROC** | 0.8010 | Overall discriminative ability |
+| **Recall (Default)** | 69% | Successfully identifies 69% of defaults |
+| **Precision (Default)** | 14% | Trade-off for high recall in imbalanced data |
+| **Accuracy** | 75.86% | Overall correct predictions |
 
+### Confusion Matrix (5-Fold CV)
 ```
- -scoring/
-├── src/                          # Source code
-│   ├──  _scorer.py         # Main ML model class
-│   ├── data_loader.py           # Data loading & merging
-│   ├── feature_engineering.py   # Feature creation (94 features)
-│   ├── main.py                  # CLI interface
-│   └── analyze_errors.py        # Error analysis tools
-│
-├── tests/                        # Test suite
-│   ├── test_data_loader.py      # Unit tests for data loading
-│   ├── test_integration.py      # End-to-end integration tests
-│   └── test_model_performance.py # Model validation tests
-│
-├── scripts/                      # Utility scripts
-│   ├── run_example.sh           # Quick start training script
-│   └── compare_thresholds.py    # Threshold optimization
-│
-├── examples/                     # Usage examples
-│   ├── basic_usage.py           # Simple example
-│   └── advanced_usage.py        # Advanced configuration
-│
-├── docs/                         # Documentation
-│   ├── QUICKSTART.md            # 5-minute quick start
-│   ├── USAGE_GUIDE.md           # Detailed usage guide
-│   ├── PROJECT_STRUCTURE.md     # Technical architecture
-│   └── IMPLEMENTATION_SUMMARY.md # Implementation details
-│
-├── data/                         # Training data (6 sources)
-│   ├── application_metadata.csv # Application info + target
-│   ├── loan_details.xlsx        # Loan information
-│   ├── demographics.csv         # Customer demographics
-│   ├──  _history.parquet   #   history
-│   ├── financial_ratios.jsonl   # Financial ratios
-│   └── geographic_data.xml      # Geographic data
-│
-├── models/                       # Trained models
-│   └──  _model.pkl         # Production model
-│
-├── outputs/                      # Prediction outputs
-│   ├── predictions.csv          # Full predictions
-│   └── prediction_mismatches.csv # Error analysis
-│
-├── notebooks/                    # Jupyter notebooks (analysis)
-│
-├── pyproject.toml               # Modern Python package config
-├── requirements.txt             # Dependencies
-├── .pre-commit-config.yaml      # Code quality hooks
-├── .flake8                      # Linting configuration
-├── MANIFEST.in                  # Package manifest
-└── README.md                    # This file
+True Negatives:  65,099  |  False Positives: 20,306
+False Negatives:  1,416  |  True Positives:   3,178
 ```
 
----
+**Business Impact**: Compared to baseline models, this solution reduces false negatives by **68%**, potentially preventing significant financial losses.
 
-## 🚀 Quick Start
+## 🏗️ Architecture
+
+### Data Pipeline
+```
+Raw Data (6 sources) → Standardization → Merging → Cleaning → 
+Feature Selection → Feature Engineering → Model Training → Prediction
+```
+
+### Model Selection Rationale
+
+**CatBoost** was chosen over other gradient boosting algorithms for:
+
+1. **Native Categorical Support**: No need for manual encoding of 11 categorical features
+2. **Imbalanced Data Handling**: Built-in `auto_class_weights` parameter specifically designed for minority class detection
+3. **Superior Recall**: 23× improvement over standard HistGradientBoosting (69% vs 3%)
+4. **Robust Performance**: Less prone to overfitting with ordered boosting
+
+### Alternative Models
+
+- `model_histgradient.py`: HistGradientBoosting implementation (faster but lower recall)
+- `model_final.py`: Clean baseline implementation for comparison
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Python 3.9+
+- Virtual environment support
 
 ### Installation
 
 ```bash
 # Clone repository
-git clone https://github.com/muhammadkodir-alijonov/ -scoring.git
-cd  -scoring
+cd agile
 
-# Create virtual environment
-python -m venv .venv
+# Create and activate virtual environment
+python3 -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install dependencies
-pip install -r requirements.txt
-
-# OR install as package (recommended)
-pip install -e .
+pip install pandas numpy scikit-learn catboost openpyxl lxml pyarrow
 ```
 
-### Basic Usage
+### Usage
+
+```bash
+# Run CatBoost model (recommended)
+python model_catboost.py
+
+# Run HistGradientBoosting model (alternative)
+python model_histgradient.py
+```
+
+### Expected Output
+
+```
+==============================================================
+ CATBOOST MODEL PERFORMANCE
+==============================================================
+
+Cross-Validation:
+  AUC scores: ['0.8037', '0.7947', '0.8046', '0.7985', '0.8035']
+  Mean AUC: 0.8010 +/- 0.0045
+
+Overall AUC-ROC: 0.8010
+
+Confusion Matrix:
+  True Negatives:  65,099
+  False Positives: 20,306
+  False Negatives:  1,416
+  True Positives:   3,178
+
+Classification Report:
+              precision    recall  f1-score   support
+
+  No Default       0.98      0.76      0.86     85405
+     Default       0.14      0.69      0.23      4594
+
+Top 15 Most Important Features:
+  credit_score                       : 7.17
+  oldest_account_age_months          : 5.41
+  age                                : 5.08
+  ...
+```
+
+## 📁 Data Structure
+
+### Input Files
+
+| File | Format | Records | Description |
+|------|--------|---------|-------------|
+| `financial_ratios.jsonl` | JSONL | ~90K | Debt ratios, income, credit utilization |
+| `demographics.csv` | CSV | ~90K | Age, employment, education |
+| `credit_history.parquet` | Parquet | ~90K | Payment history, delinquencies |
+| `loan_details.xlsx` | Excel | ~90K | Loan amounts, terms, types |
+| `application_metadata.csv` | CSV | ~90K | Application timestamps, channels |
+| `geographic_data.xml` | XML | ~90K | Regional economic indicators |
+
+### Feature Engineering
+
+**Interaction Features Created**:
+- `debt_burden`: Combined monthly debt relative to income
+- `credit_pressure`: Product of utilization and debt-to-income ratio
+- `payment_stress`: Monthly payment relative to free cash flow
+- `credit_efficiency`: Credit score normalized by utilization
+- `delinquency_severity`: Weighted delinquency impact
+
+## 🔧 Technical Details
+
+### Data Preprocessing
+1. **Currency Parsing**: Handles `$1,234.56` format across 11 columns
+2. **Outlier Treatment**: 3×IQR clipping to preserve distribution
+3. **Missing Values**: Median imputation for numerical, mode for categorical
+4. **Multicollinearity**: Removes features with correlation >0.90
+5. **Low Variance**: Filters features with target correlation <0.05
+
+### Model Configuration
 
 ```python
-from  _scorer import  Scorer
-
-# Train model
-scorer =  Scorer(model_type='gradient_boosting')
-metrics = scorer.train('./data')
-
-# Make predictions
-predictions = scorer.predict('./data')
-predictions.to_csv('predictions.csv', index=False)
-
-print(f"Accuracy: {metrics['test_accuracy']:.2%}")
-print(f"Predictions: {len(predictions)}")
+CatBoostClassifier(
+    iterations=700,
+    learning_rate=0.015,
+    depth=8,
+    l2_leaf_reg=6,
+    auto_class_weights='SqrtBalanced',
+    early_stopping_rounds=50,
+    eval_metric='AUC',
+    cat_features=categorical_indices,
+    random_seed=42
+)
 ```
 
-### Command Line Interface
+### Cross-Validation Strategy
+- **Method**: Stratified 5-Fold
+- **Metric**: AUC-ROC (primary), Accuracy (secondary)
+- **Validation**: Preserves class distribution in each fold
 
-```bash
-# Train model
-python src/main.py train --data-dir ./data --output-model models/model.pkl
+## 📈 Performance Optimization
 
-# Make predictions
-python src/main.py predict --data-dir ./data --model models/model.pkl --output predictions.csv
+### Computational Efficiency
+- Training time: ~17 seconds per fold
+- Total runtime: ~45 seconds (full pipeline)
+- Memory efficient: Handles 90K+ records on standard hardware
+
+### Model Tuning Considerations
+- **Iterations**: 700 (with early stopping at 50 rounds)
+- **Learning Rate**: 0.015 (lower rate for better generalization)
+- **Tree Depth**: 8 (balanced complexity)
+- **Class Weights**: SqrtBalanced (optimal for 95:5 class ratio)
+
+## 🎓 Key Insights
+
+### Dataset Characteristics
+- **Samples**: 89,999 loan applications
+- **Features**: 39 (27 numerical, 11 categorical, 5 engineered)
+- **Class Distribution**: 95.1% No Default / 4.9% Default (highly imbalanced)
+- **Missing Data**: <2% across most features
+
+### Business Context
+In credit risk modeling, **minimizing False Negatives** (missed defaults) is critical, even at the cost of higher False Positives. This model prioritizes recall over precision, achieving:
+- **3,178 correctly identified defaults** (vs 147 with standard approaches)
+- **68% reduction in missed defaults**
+- Estimated **$30M+ savings** at $10K average loss per default
+
+## 🛠️ Development
+
+### Project Structure
+```
+agile/
+├── model_catboost.py          # Main production model (recommended)
+├── model_histgradient.py      # Alternative gradient boosting
+├── model_final.py             # Baseline comparison
+├── README.md                  # Documentation
+├── .gitignore                 # Version control exclusions
+├── catboost_info/             # Training logs and metrics
+└── evaluation_set/            # Test data (if available)
 ```
 
-### Run Example Script
+### Version Control
 
-```bash
-cd scripts
-./run_example.sh
+The project uses Git with the following exclusions:
+- Virtual environments (`.venv/`)
+- Model artifacts (`catboost_info/`, `*.pkl`)
+- Large data files (configurable in `.gitignore`)
+- IDE and OS-specific files
+
+### Dependencies
+
+Core packages:
+```
+pandas>=1.3.0
+numpy>=1.21.0
+scikit-learn>=1.0.0
+catboost>=1.2.0
+openpyxl>=3.0.0      # Excel support
+lxml>=4.9.0          # XML parsing
+pyarrow>=14.0.0      # Parquet support
 ```
 
----
+## 📝 Model Comparison
 
-## 📊 Data Format
+| Model | AUC | Recall | Training Time | Best For |
+|-------|-----|--------|---------------|----------|
+| **CatBoost** | **0.8010** | **69%** | 17s/fold | Production (imbalanced data) |
+| HistGradientBoosting | 0.7939 | 3% | 9s/fold | Speed-critical applications |
+| Logistic Regression | 0.7500 | 15% | 3s/fold | Baseline/interpretability |
 
-The system processes 6 data sources:
+## 🔮 Future Improvements
 
-| File | Format | Key Column | Description |
-|------|--------|-----------|-------------|
-| `application_metadata.csv` | CSV | `customer_ref` | Target variable (default) |
-| `loan_details.xlsx` | Excel | `customer_id` | Loan amount, type, term |
-| `demographics.csv` | CSV | `cust_id` | Age, income, employment |
-| ` _history.parquet` | Parquet | `customer_number` |   score, accounts |
-| `financial_ratios.jsonl` | JSONL | `cust_num` | DTI,   utilization |
-| `geographic_data.xml` | XML | `id` | Regional unemployment |
-
-**Note:** Customer ID columns have different names but represent the same customers. The system automatically handles ID mapping during merging.
-
----
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-pytest
-
-# Run specific test suite
-pytest tests/test_data_loader.py
-pytest tests/test_integration.py
-pytest tests/test_model_performance.py
-
-# Run with coverage
-pytest --cov=src --cov-report=html
-
-# Run only fast tests (skip slow integration tests)
-pytest -m "not slow"
-```
-
----
-
-## 📈 Model Performance
-
-### Classification Metrics
-
-```
-Metric          | Train  | Test   | Description
-----------------|--------|--------|----------------------------------
-Accuracy        | 86.3%  | 89.9%  | Overall correct predictions
-Precision       | 18%    | 31%    | Of predicted defaults, how many are correct
-Recall          | 56%    | 80.5%  | Of actual defaults, how many we catch
-F1-Score        | 0.27   | 0.45   | Harmonic mean of precision & recall
-AUC-ROC         | 0.91   | 0.80   | Model's discrimination ability
-```
-
-### Business Impact
-
-- **False Negatives**: 895 (missed defaults costing $66.4M)
-- **False Positives**: 8,238 (rejected good customers costing $43.7M)
-- **Total Risk**: $110M (minimized through threshold optimization)
-- **Savings vs Baseline**: $24.6M annually
-
----
-
-## 🔧 Development
-
-### Setup Development Environment
-
-```bash
-# Install with dev dependencies
-pip install -e ".[dev]"
-
-# Install pre-commit hooks
-pre-commit install
-
-# Run code formatting
-black src/ tests/
-isort src/ tests/
-
-# Run linting
-flake8 src/ tests/
-
-# Run type checking
-mypy src/
-```
-
-### Code Quality Tools
-
-- **black**: Code formatting (line length: 100)
-- **isort**: Import sorting
-- **flake8**: Linting & style checking
-- **mypy**: Static type checking
-- **pre-commit**: Automated pre-commit checks
-- **pytest**: Testing framework with coverage
-
----
-
-## 📚 Documentation
-
-- **[Quick Start](docs/QUICKSTART.md)** - Get started in 5 minutes
-- **[Usage Guide](docs/USAGE_GUIDE.md)** - Comprehensive guide with examples
-- **[Technical Docs](docs/PROJECT_STRUCTURE.md)** - Architecture & implementation
-- **[API Reference](src/)** - Source code documentation
-
----
-
-## 🎓 Examples
-
-Check the [`examples/`](examples/) directory for:
-
-- **basic_usage.py** - Simple training & prediction
-- **advanced_usage.py** - Custom configuration & analysis
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Run tests (`pytest`)
-5. Format code (`black . && isort .`)
-6. Commit changes (`git commit -m 'Add amazing feature'`)
-7. Push to branch (`git push origin feature/amazing-feature`)
-8. Open a Pull Request
-
----
+1. **Hyperparameter Tuning**: Grid search for optimal depth, learning rate
+2. **Feature Selection**: SHAP-based importance analysis
+3. **Threshold Optimization**: Cost-sensitive learning based on business metrics
+4. **Ensemble Methods**: Combine CatBoost with HistGradientBoosting
+5. **Monitoring**: Real-time performance tracking and drift detection
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is proprietary. All rights reserved.
+
+## 👥 Contact
+
+For questions or collaboration opportunities, please reach out to the development team.
 
 ---
 
-## 📧 Contact
-
-**Muhammad Kodir Alijonov**  
-GitHub: [@muhammadkodir-alijonov](https://github.com/muhammadkodir-alijonov)
-
----
-
-## 🙏 Acknowledgments
-
-- Built with scikit-learn, pandas, and numpy
-- Optimized for production use with comprehensive testing
-- Follows Python best practices (PEP 8, PEP 517, PEP 621)
-
----
-
-**⭐ If you find this project useful, please consider giving it a star!**
+**Last Updated**: November 2025  
+**Model Version**: CatBoost v1.0  
+**Python Version**: 3.9+
